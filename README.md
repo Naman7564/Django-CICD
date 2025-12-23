@@ -3,7 +3,7 @@
 > A beautiful, modern task management application built with Django featuring a stunning dark-mode UI with glassmorphism effects.
 
 TODO: Replace with new screenshot of dark mode UI -->
-![TaskFlow App](staticfiles/todoApp.png)
+![TaskFlow App](staticfiles/Screenshot.png)
 
 ---
 
