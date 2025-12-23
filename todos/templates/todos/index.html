@@ -1,0 +1,141 @@
+{% extends 'todos/base.html' %}
+
+{% block title %}
+<title>TaskFlow — Modern Task Manager</title>
+{% endblock %}
+
+{% block content %}
+<div class="glass-container">
+
+  <!-- title row -->
+  <div class="row">
+    <div class="col-12">
+      <div class="page-header">
+        <h1>
+          TaskFlow
+          <span>Manage your day beautifully</span>
+        </h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add a todo row -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <form method="post" action="{% url 'todos:add' %}">
+        {% csrf_token %}
+        <div class="form-row align-items-center">
+          <div class="col-md-9 mb-3 mb-md-0">
+            <input type="text" class="form-control" name="title" placeholder="✨ What's on your mind today?" required>
+          </div>
+          <div class="col-md-3">
+            <button type="submit" name="submit" class="btn btn-primary-custom btn-block">
+              Add Task
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if todo_list %}
+  <!-- todo list row -->
+  <div class="row">
+    <div class="col-12">
+      <div class="list-group">
+        {% for todo in todo_list %}
+        <div class="list-group-item TodoItem {% if todo.isCompleted %} todo-complete {% endif %}"
+          style="--item-index: {{ forloop.counter }};" data-todo-id="{{ todo.id }}">
+          <div class="d-flex align-items-center w-100">
+            <input type="checkbox" {% if todo.isCompleted %} checked {% endif %} class="todo-status-checkbox"
+              data-id="{{ todo.id }}" data-url="{% url 'todos:update' todo.id %}"
+              title="{% if not todo.isCompleted %} Mark as complete {% else %} Mark as pending {% endif %}">
+            <span class="flex-grow-1 todo-title" style="word-break: break-word;">{{ todo.title }}</span>
+            <a href="{% url 'todos:delete' todo.id %}" title="Delete task" class="ml-3">
+              <i class="far fa-trash-alt"></i>
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <p class="text-muted">✨ Your task list is empty. Add your first task above!</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Get CSRF token from cookie
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    // Handle checkbox changes with AJAX
+    document.querySelectorAll('.todo-status-checkbox').forEach(function (checkbox) {
+      checkbox.addEventListener('change', function (e) {
+        e.preventDefault();
+
+        const todoItem = this.closest('.list-group-item');
+        const url = this.dataset.url;
+        const isChecked = this.checked;
+
+        // Optimistic UI update with smooth transition
+        if (isChecked) {
+          todoItem.classList.add('todo-complete');
+          this.setAttribute('title', 'Mark as pending');
+        } else {
+          todoItem.classList.remove('todo-complete');
+          this.setAttribute('title', 'Mark as complete');
+        }
+
+        // Send AJAX request
+        const formData = new FormData();
+        if (isChecked) {
+          formData.append('isCompleted', 'on');
+        }
+
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken
+          },
+          body: formData
+        })
+          .then(response => {
+            if (!response.ok) {
+              // Revert on error
+              this.checked = !isChecked;
+              todoItem.classList.toggle('todo-complete');
+              console.error('Failed to update task');
+            }
+          })
+          .catch(error => {
+            // Revert on error
+            this.checked = !isChecked;
+            todoItem.classList.toggle('todo-complete');
+            console.error('Error:', error);
+          });
+      });
+    });
+  });
+</script>
+
+{% endblock %}
